@@ -21,7 +21,7 @@ public class ScanBardCore extends AppCompatActivity implements ZXingScannerView.
 
     @Override
     public void handleResult(Result result) {
-        MainActivity.resultT.setText(result.getText());
+        MainActivity.codigo = result.getText();
         onBackPressed();
     }
 
