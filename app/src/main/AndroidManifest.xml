@@ -18,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name=".Splashscreen"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -28,6 +28,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".ScanBardCore"></activity>
+        <activity android:name=".MainActivity"></activity>
     </application>
 
 </manifest>

@@ -3,8 +3,8 @@ package registroactividades.consultoria.tci.com.lectorqr.Modelo;
 public class Ruta {
     private double Importe;
     private String Concepto;
-    private String Latitud;
-    private String Longitud;
+    private double Latitud;
+    private double Longitud;
     private String Descripcion;
     private String IMEI;
     private String FechaHora;
@@ -28,19 +28,19 @@ public class Ruta {
         Concepto = concepto;
     }
 
-    public String getLatitud() {
+    public double getLatitud() {
         return Latitud;
     }
 
-    public void setLatitud(String latitud) {
+    public void setLatitud(double latitud) {
         Latitud = latitud;
     }
 
-    public String getLongitud() {
+    public double getLongitud() {
         return Longitud;
     }
 
-    public void setLongitud(String longitud) {
+    public void setLongitud(double longitud) {
         Longitud = longitud;
     }
 
