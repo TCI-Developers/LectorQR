@@ -8,8 +8,17 @@ public class Ruta {
     private String Descripcion;
     private String IMEI;
     private String FechaHora;
+    private int status;
 
     public Ruta() {
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 
     public double getImporte() {

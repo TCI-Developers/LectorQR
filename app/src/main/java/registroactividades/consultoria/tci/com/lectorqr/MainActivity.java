@@ -18,8 +18,10 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -65,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean checkCadena = false;
     public static String codigo = "";
     public static String codigoSplit [];
-    private ImageButton scan;
+    private ImageButton scan, upQuick;
     private static final String[] PERMISOS = {
             Manifest.permission.CAMERA,
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -87,6 +89,10 @@ public class MainActivity extends AppCompatActivity {
     private TelephonyManager mTelephony;
     private String myIMEI = "";
     public static boolean connected;
+    private CardView cardView;
+    private TextView pendiente;
+    private SwipeRefreshLayout refreshLayout;
+    private ArrayList<String> UID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +108,38 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Init();
+
+        upQuick.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                validaInternet();
+                if(connected){
+                    if(datosR.size() > 0){
+                        for(int i=0; i<datosR.size(); i++){
+                            subirQuick(i);
+                        }
+                    }else{
+                        Toast.makeText(getApplicationContext(), "Recargar", Toast.LENGTH_LONG).show();
+                    }
+                }else{
+                    Toast.makeText(getApplicationContext(), "No tienes internet, verifica tu conexión", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                loadDatos();
+
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        refreshLayout.setRefreshing(false);
+                    }
+                }, 1000);
+            }
+        });
 
         try{
             s.InicializarFirebase();
@@ -147,6 +185,11 @@ public class MainActivity extends AppCompatActivity {
         importe = findViewById(R.id.txtImporte);
         spnConcepto = findViewById(R.id.spnConcept);
         datosR = new ArrayList<>();
+        cardView = findViewById(R.id.cardSubir);
+        pendiente = findViewById(R.id.txtPendiente);
+        refreshLayout = findViewById(R.id.swipeLoad);
+        upQuick = findViewById(R.id.imageButton);
+        UID = new ArrayList<>();
     }
 
     @Override
@@ -167,7 +210,6 @@ public class MainActivity extends AppCompatActivity {
                                 if(checkCadena){
                                     if(connected){
                                         saveData();
-                                        //loadDatos();
                                         if(datosR.size() > 0){
                                             for(int i=0; i<datosR.size(); i++){
                                                 subirQuick(i);
@@ -176,8 +218,9 @@ public class MainActivity extends AppCompatActivity {
                                             Toast.makeText(getApplicationContext(), "Recargar", Toast.LENGTH_LONG).show();
                                         }
                                     }else{
-                                        Toast.makeText(getApplicationContext(), "No tienes internet, verifica tu conexión", Toast.LENGTH_LONG).show();
-                                        saveData();
+                                        Toast.makeText(getApplicationContext(), "No tienes internet, pero tus datos se han guardado correctamente", Toast.LENGTH_LONG).show();
+                                        saveData2();
+
                                     }
                                 }else {
                                     Toast.makeText(getApplicationContext(), "El codigo del cliente no es correcto", Toast.LENGTH_LONG).show();
@@ -204,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 try {
                     if(!codigo.isEmpty()){
+                        check.setEnabled(true);
                         check.playAnimation();
                         checkCadena = true;
                     }
@@ -290,12 +334,46 @@ public class MainActivity extends AppCompatActivity {
         r.setLatitud(lati);
         r.setLongitud(longi);
         r.setIMEI(myIMEI);
+        r.setStatus(1);
 
         s.databaseReference
-                .child("Actividades/"+getIMEI()+"/"+UUID.randomUUID().toString())
-                .setValue(r);
+        .child("Actividades/"+getIMEI()+"/"+UUID.randomUUID().toString())
+        .setValue(r);
+
         datosR.clear();
         datosR.add(r);
+    }
+
+    public void saveData2(){
+        r.setConcepto(spnConcepto.getSelectedItem().toString());
+        r.setImporte(Double.valueOf(importe.getText().toString()));
+        r.setDescripcion(descripcion.getText().toString());
+        r.setFechaHora(fechaHora);
+        r.setLatitud(lati);
+        r.setLongitud(longi);
+        r.setIMEI(myIMEI);
+        r.setStatus(0);
+
+        s.databaseReference
+        .child("Actividades/"+getIMEI()+"/"+UUID.randomUUID().toString())
+        .setValue(r);
+
+        limpiarDatos();
+    }
+
+    public void saveData3(int pos){
+        r.setConcepto(datosR.get(pos).getConcepto());
+        r.setImporte(datosR.get(pos).getImporte());
+        r.setDescripcion(datosR.get(pos).getDescripcion());
+        r.setFechaHora(datosR.get(pos).getFechaHora());
+        r.setLatitud(datosR.get(pos).getLatitud());
+        r.setLongitud(datosR.get(pos).getLongitud());
+        r.setIMEI(datosR.get(pos).getIMEI());
+        r.setStatus(1);
+
+        s.databaseReference
+        .child("Actividades/"+getIMEI()+"/"+UID.get(pos))
+        .setValue(r);
     }
 
     public void subirQuick(int pos){
@@ -304,14 +382,13 @@ public class MainActivity extends AppCompatActivity {
                 "?a=API_AddRecord"+
                 "&_fid_6="+datosR.get(pos).getImporte()+ //Importe
                 "&_fid_10="+datosR.get(pos).getConcepto()+ //Concepto
-                "&_fid_11="+datosR.get(pos).getLatitud() +", "+ datosR.get(pos).getLongitud()+ //Ubicacion-Lat-Long
+                "&_fid_12="+datosR.get(pos).getLatitud() +", "+ datosR.get(pos).getLongitud()+ //Ubicacion-Lat-Long
                 "&_fid_18="+datosR.get(pos).getIMEI()+ //Related User App
                 "&_fid_19="+datosR.get(pos).getFechaHora()+ //Fecha
                 "&ticket="  +"9_bpqnx8hh8_b2c6pu_fwjc_a_-b_di9hv2qb4t5jbp9jhvu3thpdfdt49mr8dugqz499kgcecg5vb3m_bwg8928"+
                 "&apptoken=" + token;
         try{
             new CargarDatos().execute(RegistroQ.replace(" ", "%20"));
-            Toast.makeText(getApplicationContext(), "Se subio la informacion correctamente", Toast.LENGTH_LONG).show();
         } catch (Exception e){
             Toast.makeText(this, "Error de conexión", Toast.LENGTH_SHORT).show();
         }
@@ -337,27 +414,25 @@ public class MainActivity extends AppCompatActivity {
 
             String resultado = ParseXmlData.ParseXmlData(result);
 
-            /*Si la variable resultado es distinto a null entonces es por que quickBase
-            nos envio una respuesta que xml con mensaje de exito o de algun error generado en la consulta*/
             if (resultado != null) {
-
-                //Si hay error en la carga de datos en quickBase, los datos los mandamos a Hostinger
                 if (resultado.equals("No error")) {
                     Log.d("Mensaje del Servidor", resultado);
                     try {
-
+                        Toast.makeText(getApplicationContext(), "Se subio la informacion correctamente", Toast.LENGTH_LONG).show();
+                        limpiarDatos();
+                        for(int i = 0; i<UID.size(); i++){
+                            saveData3(i);
+                        }
                     } catch (Exception e) {
-//                            Toast.makeText(MainActivity.this, "Error al subir", Toast.LENGTH_SHORT).show();
-                        System.out.println("error al subir: " + e.getMessage());
+                        Toast.makeText(getApplicationContext(), "error al subir: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 } else {
                     Log.d("Error de consulta", resultado);
-
+                    Toast.makeText(getApplicationContext(), "Error de consulta"+ resultado, Toast.LENGTH_LONG).show();
                 }
             } else {
-                /**En caso que respuesta sea null es por que fue error de http como los son;
-                 * 404,500,403 etc*/
                 Log.d("Error del Servidor ", result);
+                Toast.makeText(getApplicationContext(), "Error del Servidor " + result, Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -376,26 +451,36 @@ public class MainActivity extends AppCompatActivity {
 
     public void loadDatos(){
         datosR.clear();
-        s.databaseReference.child("Actividades/"+getIMEI())
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+        try{
+            r = new Ruta();
+            s.databaseReference.child("Actividades/"+getIMEI())
+            .addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         for (DataSnapshot objSnaptshot : dataSnapshot.getChildren()){
                             r = objSnaptshot.getValue(Ruta.class);
-                            datosR.add(r);
+                            if(r.getStatus() < 1){
+                                UID.add(objSnaptshot.getKey());
+                                datosR.add(r);
+                                cardView.setVisibility(View.VISIBLE);
+                                pendiente.setText(datosR.size()+"");
+                            }
                         }
-                    }
+                }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
 
-                    }
-                });
+                }
+            });
+        }catch (Exception e){
+
+        }
     }
 
     public void validaInternet(){
         DatabaseReference connectedRef = s.firebaseDatabase.getInstance().getReference(".info/connected");
-        connectedRef.addValueEventListener(new ValueEventListener() {
+        connectedRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 connected = snapshot.getValue(Boolean.class);
@@ -406,5 +491,14 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Error internet:" + error, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    public void limpiarDatos(){
+        descripcion.setText("");
+        importe.setText("");
+        spnConcepto.setSelection(0);
+        codigo = "";
+        check.setEnabled(false);
+        cardView.setVisibility(View.INVISIBLE);
     }
 }
