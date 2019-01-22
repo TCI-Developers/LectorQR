@@ -5,8 +5,8 @@
 
     <string-array name="ejemplo">
         <item>Selec. opcion</item>
-        <item>Opcion 1</item>
-        <item>Opcion 2</item>
-        <item>Opcion 3</item>
+        <item>VENTAS A CREDITO</item>
+        <item>VENTAS DE CONTADO</item>
+        <item>COBRANZA</item>
     </string-array>
 </resources>

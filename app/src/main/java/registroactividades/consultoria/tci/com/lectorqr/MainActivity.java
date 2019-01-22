@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private Date date = new Date();
     private String fecha = dateFormat.format(date);
     private String hora = java.text.DateFormat.getTimeInstance().format(Calendar.getInstance().getTime());
-    private String fechaHora = fecha +" "+ hora;
+    private String fechaHora = fecha +","+ hora;
     private boolean checkCadena = false;
     public static String codigo = "";
     public static String codigoSplit [];
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
     private LocationManager manager;
     private AlertDialog alert = null;
     private ArrayList<Ruta> datosR;
-    private String token = "cwxu6exdambasvd2cp6wvbgwfuqy";
+    private String token = "dv6unakbccxz34c8d3kp6pb56w6";
     private TelephonyManager mTelephony;
     private String myIMEI = "";
     public static boolean connected;
@@ -146,8 +146,12 @@ public class MainActivity extends AppCompatActivity {
                                     if(connected){
                                         saveData();
                                         loadDatos();
-                                        for(int i=0; i<datosR.size(); i++){
-                                            subirQuick(i);
+                                        if(datosR.size() > 0){
+                                            for(int i=0; i<datosR.size(); i++){
+                                                subirQuick(i);
+                                            }
+                                        }else{
+                                            Toast.makeText(getApplicationContext(), "Recargar", Toast.LENGTH_LONG).show();
                                         }
                                     }else{
                                         Toast.makeText(getApplicationContext(), "No tienes internet, verifica tu conexión", Toast.LENGTH_LONG).show();
@@ -269,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
         r.setIMEI(myIMEI);
 
         s.databaseReference
-                .child("Actividades/"+UUID.randomUUID().toString())
+                .child("Actividades/"+getIMEI())
                 .setValue(r);
 
     }
@@ -352,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void loadDatos(){
-        s.databaseReference.child("Actividades")
+        s.databaseReference.child("Actividades/"+getIMEI())
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
