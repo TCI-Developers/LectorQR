@@ -4,7 +4,7 @@
     <string name="save">save</string>
 
     <string-array name="ejemplo">
-        <item>Selec. opcion</item>
+        <item>SELECT OPCION</item>
         <item>VENTAS A CREDITO</item>
         <item>VENTAS DE CONTADO</item>
         <item>COBRANZA</item>

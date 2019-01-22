@@ -17,6 +17,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -89,18 +90,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        int leer = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA);
-        int leer2 = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-        int leer3 = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
-        int leer4 = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_PHONE_STATE);
-        if (leer == PackageManager.PERMISSION_DENIED || leer2 == PackageManager.PERMISSION_DENIED || leer3 == PackageManager.PERMISSION_DENIED || leer4 == PackageManager.PERMISSION_DENIED) {
-            ActivityCompat.requestPermissions(MainActivity.this, PERMISOS, REQUEST_CODE);
+     if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+        || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+
+        ActivityCompat.requestPermissions(MainActivity.this, PERMISOS , REQUEST_CODE);
         }
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //Toolbar toolbar = findViewById(R.id.toolbar);
-        //setSupportActionBar(toolbar);
 
         Init();
 
@@ -113,9 +112,32 @@ public class MainActivity extends AppCompatActivity {
         scan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, ScanBardCore.class));
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(MainActivity.this, PERMISOS , REQUEST_CODE);
+                }else{
+                    startActivity(new Intent(MainActivity.this, ScanBardCore.class));
+                }
             }
         });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_CODE: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getIMEI();
+                    validaInternet();
+                    Mi_hubicacion();
+                } else {
+                    for(int i =0; i<permissions.length; i++){
+                        if(grantResults[i] < 0){
+                            Toast.makeText(getApplicationContext(), "Estos permisos "+permissions[i]+" son necesarios.", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void Init() {
@@ -145,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
                                 if(checkCadena){
                                     if(connected){
                                         saveData();
-                                        loadDatos();
+                                        //loadDatos();
                                         if(datosR.size() > 0){
                                             for(int i=0; i<datosR.size(); i++){
                                                 subirQuick(i);
@@ -177,9 +199,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        Mi_hubicacion();
-        getIMEI();
-        validaInternet();
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -218,24 +237,24 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void Mi_hubicacion() {
-        int leer = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_PHONE_STATE);
-        int leer2 = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-        int leer3 = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION);
-        if (leer == PackageManager.PERMISSION_DENIED || leer2 == PackageManager.PERMISSION_DENIED || leer3 == PackageManager.PERMISSION_DENIED) {
-            ActivityCompat.requestPermissions(MainActivity.this, PERMISOS, REQUEST_CODE);
-        }
-        try{
-            manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
-                AlertNoGps();
-            }else{
-                Location local = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                actualizar(local);
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
 
-                manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20 * 1000, 10, locationListener);
+            ActivityCompat.requestPermissions(MainActivity.this, PERMISOS , REQUEST_CODE);
+        }else{
+            try{
+                manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+                    AlertNoGps();
+                }else{
+                    Location local = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    actualizar(local);
+
+                    manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20 * 1000, 10, locationListener);
+                }
+            }catch (Exception e){
+                Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
             }
-        }catch (Exception e){
-            //Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -273,9 +292,10 @@ public class MainActivity extends AppCompatActivity {
         r.setIMEI(myIMEI);
 
         s.databaseReference
-                .child("Actividades/"+getIMEI())
+                .child("Actividades/"+getIMEI()+"/"+UUID.randomUUID().toString())
                 .setValue(r);
-
+        datosR.clear();
+        datosR.add(r);
     }
 
     public void subirQuick(int pos){
@@ -343,9 +363,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String getIMEI(){
-        int leer = ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE);
-        if (leer == PackageManager.PERMISSION_DENIED) {
-            ActivityCompat.requestPermissions(this, PERMISOS, REQUEST_CODE);
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MainActivity.this, PERMISOS , REQUEST_CODE);
         }else{
             mTelephony = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             if (mTelephony.getDeviceId() != null){
@@ -356,6 +375,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void loadDatos(){
+        datosR.clear();
         s.databaseReference.child("Actividades/"+getIMEI())
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
